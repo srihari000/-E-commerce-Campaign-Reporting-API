@@ -35,20 +35,39 @@ exports.uploadCSV = async (req, res) => {
             })
             .on('end', async () => {
                 try {
-                    await Product.bulkCreate(products);
+                    for (const product of products) {
+                        await Product.findOrCreate({
+                            where: {
+                                campaignID: product.campaignID,
+                                adGroupID: product.adGroupID,
+                                fsnID: product.fsnID,
+                                campaignName: product.campaignName
+                            },
+                            defaults: product
+                        });
+                    }
                     res.status(201).json({ message: 'Products uploaded successfully' });
                 } catch (error) {
                     res.status(500).json({ error: 'Failed to insert products into database', details: error.message });
                 } finally {
-                    // fs.unlinkSync(filePath); // Clean up the uploaded file
+                    fs.unlinkSync(filePath); // Clean up the uploaded file
                 }
             })
             .on('error', (error) => {
                 res.status(500).json({ error: 'Failed to parse CSV file', details: error.message });
-                // fs.unlinkSync(filePath); // Clean up the uploaded file in case of error
+                fs.unlinkSync(filePath); // Clean up the uploaded file in case of error
             });
     } catch (error) {
         res.status(500).json({ error: 'Unexpected error occurred', details: error.message });
-        // fs.unlinkSync(filePath); // Clean up the uploaded file
+        fs.unlinkSync(filePath); // Clean up the uploaded file
     }
 };
+
+exports.getProductsCount = async (req, res) => {
+    try {
+        const count = await Product.count();
+        res.json({ count });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to retrieve product count', details: error.message });
+    }
+}

@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
+const { Op } = require('sequelize');
 
 /**
  * @desc Create a new user
@@ -8,6 +9,15 @@ exports.createUser = async (req, res) => {
     const { username, password, email } = req.body;
 
     try {
+        const isUserExists = await User.findOne({
+            where: {
+                [Op.or]: [
+                    { username: username },
+                    { email: email }
+                ]
+            }
+        });
+        if (isUserExists) return res.status(400).json({ error: 'User already exists' });
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await User.create({ username, password: hashedPassword, email });
         res.status(201).json({ message: 'User created successfully', user: { id: user.id, username, email } });

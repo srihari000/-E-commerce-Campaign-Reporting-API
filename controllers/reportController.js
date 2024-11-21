@@ -18,76 +18,67 @@ const buildFilterQuery = (filters) => {
     return query;
 };
 
-// API 1: Retrieve product statistics filtered by Campaign Name
-exports.getByCampaignName = async (req, res) => {
+// Function to calculate derived metrics
+const additionalCalculations = (data) => {
+    return data.map(item => ({
+        ...item,
+        ctr: item.views > 0 ? (item.clicks / item.views) * 100 : 0, // Calculate CTR%
+        totalRevenue: (item.directRevenue || 0) + (item.indirectRevenue || 0), // Calculate Total Revenue
+        totalOrders: (item.directUnits || 0) + (item.indirectUnits || 0), // Calculate Total Orders
+        roas: item.adSpend > 0 ? ((item.directRevenue || 0) + (item.indirectRevenue || 0)) / item.adSpend : 0, // Calculate ROAS
+    }));
+};
+
+// API for retrieving filtered product statistics
+const getFilteredStats = async (req, res, filters) => {
     try {
-        const { campaignName, adGroupID, fsnID, productName } = req.body;
-
-        // Build the query with the passed filters
-        const filters = buildFilterQuery({ campaignName, adGroupID, fsnID, productName });
-
-        console.log('FILTERS', filters);
         const stats = await Product.findAll({
             where: filters,
         });
-
-        return res.json({ data: stats });
+        const finalResult = additionalCalculations(stats.map(stat => stat.toJSON()));
+        return res.json({ data: finalResult });
     } catch (error) {
-        console.error('Error retrieving campaign report:', error);
+        console.error('Error retrieving report:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
+};
+
+// API 1: Retrieve product statistics filtered by Campaign Name
+exports.getByCampaignName = (req, res) => {
+    const { campaignName, adGroupID, fsnID, productName } = req.body;
+    if (!campaignName) {
+        return res.status(400).json({ error: 'Campaign Name is required' });
+    }
+    const filters = buildFilterQuery({ campaignName, adGroupID, fsnID, productName });
+    getFilteredStats(req, res, filters);
 };
 
 // API 2: Retrieve product statistics filtered by Ad Group ID
-exports.getByAdGroupID = async (req, res) => {
-    try {
-        const { adGroupID, campaignName, fsnID, productName } = req.body;
-
-        const filters = buildFilterQuery({ adGroupID, campaignName, fsnID, productName });
-
-        const stats = await Product.findAll({
-            where: filters,
-        });
-
-        return res.json({ data: stats });
-    } catch (error) {
-        console.error('Error retrieving ad group report:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+exports.getByAdGroupID = (req, res) => {
+    const { adGroupID, campaignName, fsnID, productName } = req.body;
+    if (!adGroupID) {
+        return res.status(400).json({ error: 'Ad Group ID is required' });
     }
+    const filters = buildFilterQuery({ adGroupID, campaignName, fsnID, productName });
+    getFilteredStats(req, res, filters);
 };
 
 // API 3: Retrieve product statistics filtered by FSN ID
-exports.getByFSNID = async (req, res) => {
-    try {
-        const { fsnID, campaignName, adGroupID, productName } = req.body;
-
-        const filters = buildFilterQuery({ fsnID, campaignName, adGroupID, productName });
-
-        const stats = await Product.findAll({
-            where: filters,
-        });
-
-        return res.json({ data: stats });
-    } catch (error) {
-        console.error('Error retrieving FSN report:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+exports.getByFSNID = (req, res) => {
+    const { fsnID, campaignName, adGroupID, productName } = req.body;
+    if (!fsnID) {
+        return res.status(400).json({ error: 'FSN ID is required' });
     }
+    const filters = buildFilterQuery({ fsnID, campaignName, adGroupID, productName });
+    getFilteredStats(req, res, filters);
 };
 
 // API 4: Retrieve product statistics filtered by Product Name
-exports.getByProductName = async (req, res) => {
-    try {
-        const { productName, campaignName, adGroupID, fsnID } = req.body;
-
-        const filters = buildFilterQuery({ productName, campaignName, adGroupID, fsnID });
-
-        const stats = await Product.findAll({
-            where: filters,
-        });
-
-        return res.json({ data: stats });
-    } catch (error) {
-        console.error('Error retrieving product name report:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+exports.getByProductName = (req, res) => {
+    const { productName, campaignName, adGroupID, fsnID } = req.body;
+    if (!productName) {
+        return res.status(400).json({ error: 'Product Name is required' });
     }
+    const filters = buildFilterQuery({ productName, campaignName, adGroupID, fsnID });
+    getFilteredStats(req, res, filters);
 };

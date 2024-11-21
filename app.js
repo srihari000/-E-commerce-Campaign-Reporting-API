@@ -1,25 +1,39 @@
 const express = require('express');
 const sequelize = require('./models/connection');
-const authMiddleware = require('./middlewares/authMiddleware');
 const productRoutes = require('./routes/productRoutes');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
-const reportRoutes = require('./routes/reportRoutes');
+const bodyParser = require('body-parser');
+const helmet = require('helmet');
 const { port } = require('./config')
 const app = express();
+
 app.use(express.json());
+app.use(bodyParser.json());
+app.use(helmet.contentSecurityPolicy({
+    directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"]
+    }
+}));
+
 
 app.use('/products', productRoutes);
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
-app.use('/report', authMiddleware, reportRoutes)
 
+app.use((err, req, res, next) => {
+    if (err.message === 'Only CSV files are allowed') {
+        return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: 'Internal Server Error' });
+});
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 })
 
-sequelize.sync({ force: true })
+sequelize.sync({ alter: true })
     .then(() => {
         app.listen(port, (err) => {
             if (err) {

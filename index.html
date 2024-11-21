@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signup, Login & File Upload</title>
+    <title>E-commerce Campaign Reporting API</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -73,7 +73,7 @@
 <body>
 
     <div class="container">
-        <h2>Signup, Login & File Upload</h2>
+        <h2>E-commerce Campaign Report</h2>
 
         <!-- Signup Form -->
         <div id="signup-container">
@@ -138,6 +138,10 @@
             })
                 .then(response => response.json())
                 .then(data => {
+                    if (data && data.error) {
+                        alert(data.error);
+                        return;
+                    }
                     alert(data.message || 'User created successful');
                 })
                 .catch(error => {
@@ -197,6 +201,10 @@
             })
                 .then(response => response.json())
                 .then(data => {
+                    if (data && data.error && data.error) {
+                        alert(data.error);
+                        return;
+                    }
                     alert('File uploaded successfully');
                 })
                 .catch(error => {
